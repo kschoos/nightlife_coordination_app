@@ -2,13 +2,17 @@ html
   head
     include includes/imports.jade
   body
-    .container
-      .row
-        #header
-      .row
-        .col-xs-3
-        #content.col-xs-6
-        .col-xs-3
-      .row
-        .footer
+    #wrapper.container
+      include includes/navbar.jade
+      .panel.panel-default
+        #header.row
+          .col-md-3
+          #header-inner.col-md-6.col-xs-12
+          .col-md-3
+        #content.row
+          .col-md-1
+          #content-inner.col-md-10.col-xs-12
+          .col-md-1
+        #footer.row
+          #footer-inner
 

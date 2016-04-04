@@ -14,8 +14,11 @@ Routes.prototype.home = function(req, res){
 }
 
 Routes.prototype.search = function(req, res){
-  yelp.search({ term: req.body.term, location: req.body.location }).then(function(data){
+  yelp.search({ term: "nightlife", location: req.body.location }).then(function(data){
     res.send(data);
+  })
+  .catch(function(err){
+    console.error(err);
   })
 }
 

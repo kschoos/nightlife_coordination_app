@@ -1,0 +1,43 @@
+@import url(https://fonts.googleapis.com/css?family=Fugaz+One);
+
+body{
+  font-family: "Fugaz One" !important;
+}
+
+#title{
+  text-align: center;
+}
+
+#wrapper{
+  margin-top: 20px;
+}
+
+#wrapper .row{
+  margin: 20px;
+}
+
+#location-input{
+  text-align: center;
+  width: 20%;
+  transition: 0.4s;
+}
+
+#location-input:focus{
+  width: 70%;
+}
+
+.centered{
+  margin: 0 auto;
+  float: none;
+}
+
+.searchbar{
+  text-align: center;
+  height: 70px;
+}
+
+.card{
+  padding: 15px;
+  border: 1px solid #CCC;
+  border-radius: 5px;
+}
