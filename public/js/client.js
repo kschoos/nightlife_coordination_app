@@ -9,7 +9,7 @@ var Wrapper = React.createClass({
     };
   },
   componentWillMount() {
-    this.searchFor(this.props.lastSearch);
+    if (this.props.lastSearch) this.searchFor(this.props.lastSearch);
   },
   searchFor(location, offset) {
     var dataobj = { location: location, offset: offset || 0 };
@@ -114,7 +114,6 @@ var Pager = React.createClass({
     if (this.props.total - offset >= 20) this.setState({ nextDisabled: "" });
   },
   render() {
-    console.log(this.props.total);
     return React.createElement(
       "nav",
       null,
