@@ -34,7 +34,7 @@ var Wrapper = React.createClass({
   render(){
     return(
       <div>
-        <Header isLoading={this.state.isLoading} searchFor={this.searchFor} renderSearchItems = { this.renderSearchItems }/>
+        <Header isLoading={this.state.isLoading} total={ this.state.data.total } searchFor={this.searchFor} renderSearchItems = { this.renderSearchItems }/>
         <Body authed={ this.props.authed } data={ this.state.data } searchFor={ this.searchFor }/>
       </div> 
     )
@@ -46,7 +46,7 @@ var Header = React.createClass({
     return(
       <div>
         <Title/>
-        <SearchBar searchFor={this.props.searchFor} isLoading={this.props.isLoading} renderSearchItems={ this.props.renderSearchItems }/>
+        <SearchBar searchFor={this.props.searchFor} isLoading={this.props.isLoading} total={this.props.total} renderSearchItems={ this.props.renderSearchItems }/>
       </div>
     )
   }
@@ -54,7 +54,7 @@ var Header = React.createClass({
 
 var Body = React.createClass({
   getBodyContent(){
-    if( !$.isEmptyObject( this.props.data)){
+    if( !$.isEmptyObject(this.props.data) && !this.props.data.total == 0){
       return(
         <div>
           <ItemContainer authed={ this.props.authed } data= { this.props.data }/>
@@ -91,7 +91,7 @@ var Title = React.createClass({
 var Pager = React.createClass({
   getInitialState(){
     var prevDisabled = sessionStorage.offset == 0 ? "disabled" : "";
-    var nextDisabled = this.props.total - sessionStorage.offset < 20  ? "disabled" : "";
+    var nextDisabled = this.props.total - sessionStorage.offset < 18 ? "disabled" : "";
     return{
       prevDisabled: prevDisabled,
       nextDisabled: nextDisabled
@@ -100,9 +100,9 @@ var Pager = React.createClass({
   next(){
     var offset = sessionStorage.offset || 0;
     offset *= 1;
-    offset += 20;
+    offset += 18;
     this.props.searchFor(sessionStorage.lastSearch, offset);
-    if(this.props.total - offset < 20){
+    if(this.props.total - offset < 18){
       this.setState({nextDisabled: "disabled"})
     }
     if(offset > 0) this.setState({prevDisabled: ""});
@@ -110,19 +110,19 @@ var Pager = React.createClass({
   prev(){
     var offset = sessionStorage.offset || 0;
     offset *= 1;
-    if(offset >= 20){
-      offset -= 20;
+    if(offset >= 18){
+      offset -= 18;
       this.props.searchFor(sessionStorage.lastSearch, offset);
     } 
     if(offset == 0) this.setState({prevDisabled: "disabled"});
-    if(this.props.total - offset >= 20) this.setState({nextDisabled: ""});
+    if(this.props.total - offset >= 18) this.setState({nextDisabled: ""});
   },
   render(){
     return(
       <nav>
         <ul className="pager">
-            <li className= { this.state.prevDisabled }><a onClick={ this.prev }>Previous</a></li>
-            <li className= { this.state.nextDisabled }><a onClick={ this.next }>Next</a></li>
+            <li className= { this.state.prevDisabled }><a href="#" onClick={ this.prev }>Previous</a></li>
+            <li className= { this.state.nextDisabled }><a href="#" onClick={ this.next }>Next</a></li>
         </ul>
       </nav>
     )
@@ -136,6 +136,26 @@ var LoadingScreen = React.createClass({
         <i className= { "fa fa-spinner fa-pulse fa-" + this.props.scale + "x" }/>
       </div>
     )
+  }
+})
+
+var Results = React.createClass({
+  render(){
+    if( this.props.total > 0 )
+      return(
+        <div className="results">
+          <h2>{this.props.total + " Results"}</h2>
+        </div>
+      )
+
+    else
+      return(
+        <div className="results">
+          <h2>{ "0 Results" }</h2>
+          <h4>Sorry</h4>
+          <i className="fa fa-meh-o fa-3x"/>
+        </div>
+      )
   }
 })
 
@@ -166,6 +186,11 @@ var SearchBar = React.createClass({
       return( <LoadingScreen scale="3"/> );
     } 
   },
+  drawResults(){
+    if(this.props.total != undefined){
+      return( <Results total={this.props.total}/> );
+    }
+  },
   handleLocationChange(e){
     this.setState({location: e.target.value});
   },
@@ -179,6 +204,7 @@ var SearchBar = React.createClass({
         <form onSubmit={ this.submitForm }>
           <input onFocus={ this.textFocus } onBlur={ this.textBlur } onChange={ this.handleLocationChange } value={this.state.location} type="text" id="location-input" className="form-control input-lg centered" placeholder={ this.state.textplaceholder  }/>
           { this.drawButton() }
+          { this.drawResults() }
           { this.drawLoadingScreen() }
         </form>
       </div>

@@ -31,7 +31,7 @@ var Wrapper = React.createClass({
     return React.createElement(
       "div",
       null,
-      React.createElement(Header, { isLoading: this.state.isLoading, searchFor: this.searchFor, renderSearchItems: this.renderSearchItems }),
+      React.createElement(Header, { isLoading: this.state.isLoading, total: this.state.data.total, searchFor: this.searchFor, renderSearchItems: this.renderSearchItems }),
       React.createElement(Body, { authed: this.props.authed, data: this.state.data, searchFor: this.searchFor })
     );
   }
@@ -43,14 +43,14 @@ var Header = React.createClass({
       "div",
       null,
       React.createElement(Title, null),
-      React.createElement(SearchBar, { searchFor: this.props.searchFor, isLoading: this.props.isLoading, renderSearchItems: this.props.renderSearchItems })
+      React.createElement(SearchBar, { searchFor: this.props.searchFor, isLoading: this.props.isLoading, total: this.props.total, renderSearchItems: this.props.renderSearchItems })
     );
   }
 });
 
 var Body = React.createClass({
   getBodyContent() {
-    if (!$.isEmptyObject(this.props.data)) {
+    if (!$.isEmptyObject(this.props.data) && !this.props.data.total == 0) {
       return React.createElement(
         "div",
         null,
@@ -87,7 +87,7 @@ var Title = React.createClass({
 var Pager = React.createClass({
   getInitialState() {
     var prevDisabled = sessionStorage.offset == 0 ? "disabled" : "";
-    var nextDisabled = this.props.total - sessionStorage.offset < 20 ? "disabled" : "";
+    var nextDisabled = this.props.total - sessionStorage.offset < 18 ? "disabled" : "";
     return {
       prevDisabled: prevDisabled,
       nextDisabled: nextDisabled
@@ -96,9 +96,9 @@ var Pager = React.createClass({
   next() {
     var offset = sessionStorage.offset || 0;
     offset *= 1;
-    offset += 20;
+    offset += 18;
     this.props.searchFor(sessionStorage.lastSearch, offset);
-    if (this.props.total - offset < 20) {
+    if (this.props.total - offset < 18) {
       this.setState({ nextDisabled: "disabled" });
     }
     if (offset > 0) this.setState({ prevDisabled: "" });
@@ -106,12 +106,12 @@ var Pager = React.createClass({
   prev() {
     var offset = sessionStorage.offset || 0;
     offset *= 1;
-    if (offset >= 20) {
-      offset -= 20;
+    if (offset >= 18) {
+      offset -= 18;
       this.props.searchFor(sessionStorage.lastSearch, offset);
     }
     if (offset == 0) this.setState({ prevDisabled: "disabled" });
-    if (this.props.total - offset >= 20) this.setState({ nextDisabled: "" });
+    if (this.props.total - offset >= 18) this.setState({ nextDisabled: "" });
   },
   render() {
     return React.createElement(
@@ -125,7 +125,7 @@ var Pager = React.createClass({
           { className: this.state.prevDisabled },
           React.createElement(
             "a",
-            { onClick: this.prev },
+            { href: "#", onClick: this.prev },
             "Previous"
           )
         ),
@@ -134,7 +134,7 @@ var Pager = React.createClass({
           { className: this.state.nextDisabled },
           React.createElement(
             "a",
-            { onClick: this.next },
+            { href: "#", onClick: this.next },
             "Next"
           )
         )
@@ -149,6 +149,34 @@ var LoadingScreen = React.createClass({
       "div",
       { className: "loading-screen" },
       React.createElement("i", { className: "fa fa-spinner fa-pulse fa-" + this.props.scale + "x" })
+    );
+  }
+});
+
+var Results = React.createClass({
+  render() {
+    if (this.props.total > 0) return React.createElement(
+      "div",
+      { className: "results" },
+      React.createElement(
+        "h2",
+        null,
+        this.props.total + " Results"
+      )
+    );else return React.createElement(
+      "div",
+      { className: "results" },
+      React.createElement(
+        "h2",
+        null,
+        "0 Results"
+      ),
+      React.createElement(
+        "h4",
+        null,
+        "Sorry"
+      ),
+      React.createElement("i", { className: "fa fa-meh-o fa-3x" })
     );
   }
 });
@@ -177,6 +205,11 @@ var SearchBar = React.createClass({
       return React.createElement(LoadingScreen, { scale: "3" });
     }
   },
+  drawResults() {
+    if (this.props.total != undefined) {
+      return React.createElement(Results, { total: this.props.total });
+    }
+  },
   handleLocationChange(e) {
     this.setState({ location: e.target.value });
   },
@@ -193,6 +226,7 @@ var SearchBar = React.createClass({
         { onSubmit: this.submitForm },
         React.createElement("input", { onFocus: this.textFocus, onBlur: this.textBlur, onChange: this.handleLocationChange, value: this.state.location, type: "text", id: "location-input", className: "form-control input-lg centered", placeholder: this.state.textplaceholder }),
         this.drawButton(),
+        this.drawResults(),
         this.drawLoadingScreen()
       )
     );

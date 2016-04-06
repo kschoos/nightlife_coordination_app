@@ -37,7 +37,7 @@ Routes.prototype.home = function(req, res){
 }
 
 Routes.prototype.search = function(req, res){
-  yelp.search({ term: "nightlife", location: req.body.location, offset: req.body.offset }).then(function(data){
+  yelp.search({ term: "bar", limit: 18, location: req.body.location, offset: req.body.offset }).then(function(data){
     var index = 0;
     for(var i = 0; i < data.businesses.length; i++){
       DB.collection("bars").findAndModify({id: data.businesses[i].id},
@@ -67,7 +67,8 @@ Routes.prototype.search = function(req, res){
     }
   })
   .catch(function(err){
-    console.error(err);
+    var error = JSON.parse(err.data).error;
+    if(error.id == "UNAVAILABLE_FOR_LOCATION") res.send({ total: 0 });
   })
 }
 

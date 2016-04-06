@@ -33,7 +33,7 @@ body{
 
 .searchbar{
   text-align: center;
-  height: 100px;
+  height: 150px;
 }
 
 .searchbar input{
@@ -57,7 +57,7 @@ a{
   cursor: hand;
 }
 
-.item-container{
+.item-container, .results{
   margin-top: 15px !important;
 }
 
