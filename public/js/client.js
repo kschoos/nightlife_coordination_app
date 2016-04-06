@@ -1,6 +1,40 @@
 $(document).ready(function () {
+  ReactDOM.render(React.createElement(Wrapper, { lastSearch: sessionStorage.lastSearch, authed: authed }), document.getElementById("content-inner"));
+});
 
-  ReactDOM.render(React.createElement(Header, null), document.getElementById("header-inner"));
+var Wrapper = React.createClass({
+  getInitialState() {
+    return {
+      data: {}
+    };
+  },
+  componentWillMount() {
+    this.searchFor(this.props.lastSearch);
+  },
+  searchFor(location, offset) {
+    var dataobj = { location: location, offset: offset || 0 };
+    this.setState({ data: {}, isLoading: true });
+
+    $.ajax({
+      url: "/search",
+      method: "post",
+      data: dataobj,
+      success: this.renderSearchItems
+    });
+    sessionStorage.lastSearch = location;
+    sessionStorage.offset = offset || 0;
+  },
+  renderSearchItems(data) {
+    this.setState({ data: data, isLoading: false });
+  },
+  render() {
+    return React.createElement(
+      "div",
+      null,
+      React.createElement(Header, { isLoading: this.state.isLoading, searchFor: this.searchFor, renderSearchItems: this.renderSearchItems }),
+      React.createElement(Body, { authed: this.props.authed, data: this.state.data, searchFor: this.searchFor })
+    );
+  }
 });
 
 var Header = React.createClass({
@@ -9,7 +43,29 @@ var Header = React.createClass({
       "div",
       null,
       React.createElement(Title, null),
-      React.createElement(SearchBar, null)
+      React.createElement(SearchBar, { searchFor: this.props.searchFor, isLoading: this.props.isLoading, renderSearchItems: this.props.renderSearchItems })
+    );
+  }
+});
+
+var Body = React.createClass({
+  getBodyContent() {
+    if (!$.isEmptyObject(this.props.data)) {
+      return React.createElement(
+        "div",
+        null,
+        React.createElement(ItemContainer, { authed: this.props.authed, data: this.props.data }),
+        React.createElement(Pager, { total: this.props.data.total, paginate: this.props.paginate, searchFor: this.props.searchFor })
+      );
+    } else {
+      return React.createElement("div", null);
+    }
+  },
+  render() {
+    return React.createElement(
+      "div",
+      null,
+      this.getBodyContent()
     );
   }
 });
@@ -28,11 +84,82 @@ var Title = React.createClass({
   }
 });
 
+var Pager = React.createClass({
+  getInitialState() {
+    var prevDisabled = sessionStorage.offset == 0 ? "disabled" : "";
+    var nextDisabled = this.props.total - sessionStorage.offset < 20 ? "disabled" : "";
+    return {
+      prevDisabled: prevDisabled,
+      nextDisabled: nextDisabled
+    };
+  },
+  next() {
+    var offset = sessionStorage.offset || 0;
+    offset *= 1;
+    offset += 20;
+    this.props.searchFor(sessionStorage.lastSearch, offset);
+    if (this.props.total - offset < 20) {
+      this.setState({ nextDisabled: "disabled" });
+    }
+    if (offset > 0) this.setState({ prevDisabled: "" });
+  },
+  prev() {
+    var offset = sessionStorage.offset || 0;
+    offset *= 1;
+    if (offset >= 20) {
+      offset -= 20;
+      this.props.searchFor(sessionStorage.lastSearch, offset);
+    }
+    if (offset == 0) this.setState({ prevDisabled: "disabled" });
+    if (this.props.total - offset >= 20) this.setState({ nextDisabled: "" });
+  },
+  render() {
+    console.log(this.props.total);
+    return React.createElement(
+      "nav",
+      null,
+      React.createElement(
+        "ul",
+        { className: "pager" },
+        React.createElement(
+          "li",
+          { className: this.state.prevDisabled },
+          React.createElement(
+            "a",
+            { onClick: this.prev },
+            "Previous"
+          )
+        ),
+        React.createElement(
+          "li",
+          { className: this.state.nextDisabled },
+          React.createElement(
+            "a",
+            { onClick: this.next },
+            "Next"
+          )
+        )
+      )
+    );
+  }
+});
+
+var LoadingScreen = React.createClass({
+  render() {
+    return React.createElement(
+      "div",
+      { className: "loading-screen" },
+      React.createElement("i", { className: "fa fa-spinner fa-pulse fa-" + this.props.scale + "x" })
+    );
+  }
+});
+
 var SearchBar = React.createClass({
   getInitialState() {
     return {
       textplaceholder: "YES!",
-      textHasFocus: false
+      textHasFocus: false,
+      offset: 0
     };
   },
   textFocus() {
@@ -46,21 +173,17 @@ var SearchBar = React.createClass({
   drawButton() {
     if (this.state.textHasFocus) return React.createElement("input", { type: "submit", value: "Go!", className: "btn btn-default" });
   },
+  drawLoadingScreen() {
+    if (this.props.isLoading) {
+      return React.createElement(LoadingScreen, { scale: "3" });
+    }
+  },
   handleLocationChange(e) {
     this.setState({ location: e.target.value });
   },
   submitForm(e) {
     e.preventDefault();
-    var dataobj = { location: this.state.location };
-    $.ajax({
-      url: "/search",
-      method: "post",
-      data: dataobj,
-      success(data) {
-        console.log(data.businesses);
-        ReactDOM.render(React.createElement(ItemContainer, { data: data }), document.getElementById("content-inner"));
-      }
-    });
+    this.props.searchFor(this.state.location);
   },
   render() {
     return React.createElement(
@@ -70,7 +193,8 @@ var SearchBar = React.createClass({
         "form",
         { onSubmit: this.submitForm },
         React.createElement("input", { onFocus: this.textFocus, onBlur: this.textBlur, onChange: this.handleLocationChange, value: this.state.location, type: "text", id: "location-input", className: "form-control input-lg centered", placeholder: this.state.textplaceholder }),
-        this.drawButton()
+        this.drawButton(),
+        this.drawLoadingScreen()
       )
     );
   }
@@ -78,68 +202,91 @@ var SearchBar = React.createClass({
 
 var ItemContainer = React.createClass({
   render() {
-    var itemRows = [];
-    for (var i = 0; i < this.props.data.businesses.length; i += 2) {
-      var businesses = [];
-      businesses.push(this.props.data.businesses[i]);
-      businesses.push(this.props.data.businesses[i + 1]);
-      itemRows.push(React.createElement(ItemRow, { items: businesses }));
-    }
-    return React.createElement(
-      "div",
-      { className: "itemContainer" },
-      itemRows
-    );
-  }
-});
-
-var ItemRow = React.createClass({
-  render() {
     var items = [];
-    for (var i = 0; i < this.props.items.length; i++) {
-      items.push(React.createElement(Item, { imagelink: this.props.items[i].image_url, name: this.props.items[i].name }));
+    for (var i = 0; i < this.props.data.businesses.length; i++) {
+      items.push(React.createElement(Item, { authed: this.props.authed, key: i, data: this.props.data.businesses[i] }));
     }
     return React.createElement(
       "div",
-      { className: "row" },
+      { className: "item-container card-columns" },
       items
     );
   }
 });
 
 var Item = React.createClass({
+  getInitialState() {
+    return {
+      going: this.props.data.going,
+      isLoading: false
+    };
+  },
+  setGoing(going) {
+    this.setState({ isLoading: false, going: going });
+  },
+  goHere() {
+    var dataobj = { id: this.props.data.id };
+    this.setState({ isLoading: true });
+    $.ajax({
+      url: "/registerAt",
+      method: "post",
+      data: dataobj,
+      success: this.setGoing
+    });
+    return false;
+  },
+  drawFooter() {
+    if (this.props.authed) {
+      if (this.state.isLoading) {
+        return React.createElement(LoadingScreen, { scale: "1" });
+      } else {
+        return React.createElement(
+          "a",
+          { onClick: this.goHere },
+          this.state.going + " Going"
+        );
+      }
+    } else {
+      return React.createElement(
+        "div",
+        null,
+        this.state.going + " Going"
+      );
+    }
+  },
   render() {
     return React.createElement(
       "div",
-      { className: "item col-sm-6 col-xs-12" },
+      { className: "card text-center" },
       React.createElement(
         "div",
-        { className: "card text-center" },
-        React.createElement("img", { className: "card-img-top", src: this.props.imagelink }),
+        { className: "card-header" },
+        React.createElement("img", { className: "card-img-top", src: this.props.data.image_url, alt: "Photo of the bar '" + this.props.data.name + "'" }),
+        React.createElement("img", { src: this.props.data.rating_img_url, alt: this.props.data.name + " is rated " + this.props.data.rating + " out of 5!" })
+      ),
+      React.createElement(
+        "div",
+        { className: "card-block" },
         React.createElement(
-          "div",
-          { className: "card-block" },
-          React.createElement(
-            "h3",
-            { className: "card-title" },
-            this.props.name
-          ),
-          React.createElement(
-            "p",
-            { className: "card-text" },
-            "This is some random text to go with the title"
-          ),
-          React.createElement(
-            "a",
-            { href: "#", className: "btn btn-default btn-primary" },
-            "A Button"
-          )
+          "h3",
+          { className: "card-title" },
+          this.props.data.name
         ),
         React.createElement(
-          "div",
-          { className: "card-footer text-muted" },
-          "2 Going"
+          "p",
+          { className: "card-text" },
+          this.props.data.snippet_text
+        ),
+        React.createElement(
+          "a",
+          { href: this.props.data.url, className: "btn btn-default btn-primary" },
+          "More..."
         )
+      ),
+      React.createElement(
+        "div",
+        { className: "card-footer" },
+        this.drawFooter()
       )
     );
   }

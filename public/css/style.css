@@ -33,11 +33,34 @@ body{
 
 .searchbar{
   text-align: center;
-  height: 70px;
+  height: 100px;
+}
+
+.searchbar input{
+  margin-top: 15px; 
 }
 
 .card{
-  padding: 15px;
   border: 1px solid #CCC;
   border-radius: 5px;
+  text-align: center;
+}
+
+.card img{
+  border-radius: 50% !important;
+  display: block;
+  margin: 0 auto;
+}
+
+a{
+  cursor: pointer;
+  cursor: hand;
+}
+
+.item-container{
+  margin-top: 15px !important;
+}
+
+.loading-screen{
+  margin: 20px;
 }
