@@ -46,7 +46,7 @@ body{
   text-align: center;
 }
 
-.card img{
+.card .card-img-top{
   border-radius: 50% !important;
   display: block;
   margin: 0 auto;
